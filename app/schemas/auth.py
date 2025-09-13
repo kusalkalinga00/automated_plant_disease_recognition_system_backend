@@ -8,6 +8,11 @@ class RegisterIn(BaseModel):
     full_name: str | None = None
 
 
+class LoginIn(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=8)
+
+
 class UserOut(BaseModel):
     id: str
     email: EmailStr

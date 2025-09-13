@@ -13,7 +13,7 @@ from app.core.security import (
     decode_token,
     get_current_user,
 )
-from app.schemas.auth import RegisterIn, UserOut, TokenPairOut, RefreshIn
+from app.schemas.auth import RegisterIn, UserOut, TokenPairOut, RefreshIn, LoginIn
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -37,11 +37,11 @@ def register(data: RegisterIn, db: Session = Depends(get_db)):
     return api_response(True, "User registered successfully", payload, None)
 
 
-@router.post("/login")
-def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    email = form.username.lower()
+@router.post("/login")  # <-- now JSON body
+def login(data: LoginIn, db: Session = Depends(get_db)):
+    email = data.email.lower()
     user = db.query(User).filter(User.email == email).first()
-    if not user or not verify_password(form.password, user.password_hash):
+    if not user or not verify_password(data.password, user.password_hash):
         return api_response(False, "Invalid credentials", None, None)
 
     access = create_access_token(user.id)
