@@ -37,7 +37,7 @@ def register(data: RegisterIn, db: Session = Depends(get_db)):
     return api_response(True, "User registered successfully", payload, None)
 
 
-@router.post("/login")  # <-- now JSON body
+@router.post("/login")
 def login(data: LoginIn, db: Session = Depends(get_db)):
     email = data.email.lower()
     user = db.query(User).filter(User.email == email).first()
