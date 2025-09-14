@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     MODEL_PATH: str = "models/plant_disease_model.keras"
     LABELS_PATH: str = "models/labels.json"
     META_PATH: str = "models/meta.json"
+    MAX_UPLOAD_MB: int = 8
 
     model_config = SettingsConfigDict(
         env_file=".env", case_sensitive=False, extra="ignore"
