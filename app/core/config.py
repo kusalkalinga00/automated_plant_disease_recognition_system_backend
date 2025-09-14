@@ -10,10 +10,16 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./data/app.db"  # we’ll switch to Postgres later
     UPLOAD_DIR: str = "./uploads"
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]
-    ACCESS_TOKEN_MINUTES: int = 15
+    ACCESS_TOKEN_MINUTES: int = 120
     REFRESH_TOKEN_DAYS: int = 14
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    MODEL_PATH: str = "models/plant_disease_model.keras"
+    LABELS_PATH: str = "models/labels.json"
+    META_PATH: str = "models/meta.json"
+
+    model_config = SettingsConfigDict(
+        env_file=".env", case_sensitive=False, extra="ignore"
+    )
 
 
 settings = Settings()
