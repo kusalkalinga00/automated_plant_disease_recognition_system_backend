@@ -1,8 +1,9 @@
 import datetime, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import Depends, HTTPException, status, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from jwt import ExpiredSignatureError, InvalidSignatureError, DecodeError
 
 from app.core.config import settings
 from app.db.deps import get_db
@@ -11,7 +12,7 @@ from app.db.models import User
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # must match your real login URL (with version prefix)
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+bearer_scheme = HTTPBearer(bearerFormat="JWT", auto_error=False)
 
 
 def hash_password(plain: str) -> str:
@@ -42,25 +43,31 @@ def decode_token(token: str) -> dict:
 
 
 def get_current_user(
-    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Security(bearer_scheme),
 ) -> User:
+    if not credentials or (credentials.scheme or "").lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized"
+        )
+
+    token = credentials.credentials
     try:
         payload = decode_token(token)
-        uid = payload.get("sub")
-        user = db.query(User).filter(User.id == uid).first()
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-            )
-        return user
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
-        )
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except InvalidSignatureError:
+        raise HTTPException(status_code=401, detail="Invalid signature")
+    except DecodeError:
+        raise HTTPException(status_code=401, detail="Malformed token")
     except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        )
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    uid = payload.get("sub")
+    user = db.query(User).filter(User.id == uid).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found for token")
+    return user
 
 
 def admin_required(user: User = Depends(get_current_user)) -> User:
