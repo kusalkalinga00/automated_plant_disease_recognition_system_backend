@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./data/app.db"  # we’ll switch to Postgres later
     UPLOAD_DIR: str = "./uploads"
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]
-    ACCESS_TOKEN_MINUTES: int = 15
+    ACCESS_TOKEN_MINUTES: int = 120
     REFRESH_TOKEN_DAYS: int = 14
 
     MODEL_PATH: str = "models/plant_disease_model.keras"
