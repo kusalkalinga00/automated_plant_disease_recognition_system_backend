@@ -31,7 +31,7 @@ def _create_token(sub: str, minutes: int) -> str:
 
 def create_access_token(user_id: str) -> str:
     return _create_token(
-        user_id, minutes=getattr(settings, "ACCESS_TOKEN_MINUTES", 120)
+        user_id, minutes=getattr(settings, "ACCESS_TOKEN_MINUTES", 1120)
     )
 
 
