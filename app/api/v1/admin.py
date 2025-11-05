@@ -117,6 +117,22 @@ def list_diseases(
     )
 
 
+@router.get("/diseases/labels")
+def list_disease_labels(
+    search: str | None = None,
+    _: str = Depends(admin_required),
+    db: Session = Depends(get_db),
+):
+    q = db.query(Disease.label)
+    if search:
+        q = q.filter(Disease.label.ilike(f"%{search}%"))
+    rows = q.order_by(Disease.label.asc()).all()
+    labels = [r[0] for r in rows]
+    return api_response(
+        True, "Disease labels retrieved", labels, {"total": len(labels)}
+    )
+
+
 @router.get("/diseases/{disease_id}")
 def get_disease(
     disease_id: str, _: str = Depends(admin_required), db: Session = Depends(get_db)
