@@ -257,3 +257,29 @@ def list_treatments(
         payload,
         {"page": page, "page_size": page_size, "total": total},
     )
+
+
+@router.get("/treatments/{treatment_id}")
+def get_treatment(
+    treatment_id: str, _: str = Depends(admin_required), db: Session = Depends(get_db)
+):
+    row = (
+        db.query(Treatment, Disease.label.label("disease_label"))
+        .join(Disease, Disease.id == Treatment.disease_id)
+        .filter(Treatment.id == treatment_id)
+        .first()
+    )
+    if not row:
+        return api_response(False, "Treatment not found", None, None)
+    t, d_label = row
+    payload = {
+        "id": t.id,
+        "disease_id": t.disease_id,
+        "type": t.type,
+        "title": t.title,
+        "instructions": t.instructions,
+        "dosage": t.dosage,
+        "locale": t.locale,
+        "disease_label": d_label,
+    }
+    return api_response(True, "Treatment retrieved", payload, None)
