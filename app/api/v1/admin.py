@@ -1,6 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from app.utils.response import api_response
 from app.db.deps import get_db
 from app.db.models import Disease, Treatment
@@ -66,10 +65,8 @@ def delete_disease(
     if not d:
         return api_response(False, "Disease not found", None, None)
     # prevent delete if treatments exist
-    t_count = (
-        db.query(func.count(Treatment.id)).filter(Treatment.disease_id == d.id).scalar()
-        or 0
-    )
+    # Count treatments without using SQLAlchemy func() to satisfy stricter linters
+    t_count = db.query(Treatment.id).filter(Treatment.disease_id == d.id).count() or 0
     if t_count > 0:
         return api_response(
             False,
@@ -203,17 +200,20 @@ def list_treatments(
     page_size: int = 50,
     disease_label: str | None = None,
     locale: str | None = None,
-    type: str | None = None,
+    treatment_type: str | None = Query(default=None, alias="type"),
     _: str = Depends(admin_required),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Treatment).join(Disease, Disease.id == Treatment.disease_id)
+    # Select treatment with related disease label for response enrichment
+    q = db.query(Treatment, Disease.label.label("disease_label")).join(
+        Disease, Disease.id == Treatment.disease_id
+    )
     if disease_label:
         q = q.filter(Disease.label == disease_label)
     if locale:
         q = q.filter(Treatment.locale == locale)
-    if type:
-        q = q.filter(Treatment.type == type)
+    if treatment_type:
+        q = q.filter(Treatment.type == treatment_type)
     total = q.count()
     items = (
         q.order_by(Treatment.title.asc())
@@ -221,6 +221,7 @@ def list_treatments(
         .limit(page_size)
         .all()
     )
+    # items are tuples: (Treatment, disease_label)
     payload = [
         {
             "id": t.id,
@@ -230,8 +231,9 @@ def list_treatments(
             "instructions": t.instructions,
             "dosage": t.dosage,
             "locale": t.locale,
+            "disease_label": d_label,
         }
-        for t in items
+        for t, d_label in items
     ]
     return api_response(
         True,
