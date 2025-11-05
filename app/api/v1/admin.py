@@ -117,6 +117,22 @@ def list_diseases(
     )
 
 
+@router.get("/diseases/{disease_id}")
+def get_disease(
+    disease_id: str, _: str = Depends(admin_required), db: Session = Depends(get_db)
+):
+    d = db.query(Disease).filter(Disease.id == disease_id).first()
+    if not d:
+        return api_response(False, "Disease not found", None, None)
+    payload = {
+        "id": d.id,
+        "label": d.label,
+        "display_name": d.display_name,
+        "description": d.description,
+    }
+    return api_response(True, "Disease retrieved", payload, None)
+
+
 # ---------- Treatments ----------
 @router.post("/treatments")
 def create_treatment(
